@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">rak811tester</string>
+    <string name="title_activity_maps">@string/app_name</string>
+</resources>

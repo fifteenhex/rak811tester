@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+        <import type="com.a0x0f.rak811tester.LogLineRecyclerViewAdapter" />
+
+        <variable
+            name="viewModel"
+            type="com.a0x0f.rak811tester.ViewModel" />
+    </data>
+
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <com.google.android.gms.maps.MapView
+            android:id="@+id/map"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:allGesturesEnabled="@{false}"
+            app:camera="@{viewModel.mapData.camera}"
+            app:markers="@{viewModel.mapData.markers}"
+            app:maxZoomPreference="@{15.0f}"
+            app:myLocationButtonEnabled="@{false}"
+            app:myLocationEnabled="@{true}" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="@dimen/padding_normal"
+            android:shadowColor="#aa000000"
+            android:shadowDx="1"
+            android:shadowDy="1"
+            android:shadowRadius="1"
+            android:text="@{viewModel.mapData.best}"
+            android:textColor="#fff"
+            android:textSize="36dp"
+            tools:text="4,000" />
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#aa000000"
+            app:behavior_hideable="true"
+            app:behavior_peekHeight="64dp"
+            app:layout_behavior="@string/bottom_sheet_behavior">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:paddingTop="@dimen/padding_normal"
+                android:paddingBottom="@dimen/padding_normal"
+                app:adapter="@{LogLineRecyclerViewAdapter.createAdapter(viewModel.log)}"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
+        </FrameLayout>
+
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+</layout>
