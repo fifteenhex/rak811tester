@@ -239,7 +239,7 @@ public class Rak811 {
         public static Downlink from(String buffer) {
             if (buffer == null)
                 throw new IllegalArgumentException();
-            
+
             Matcher matcher = recvPattern.matcher(buffer);
             if (matcher.find()) {
                 int eventCode = Integer.parseInt(matcher.group(1));

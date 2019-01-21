@@ -114,6 +114,17 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
                 )
                 .subscribe(rak811 -> {
                     messages.onNext("rak811 connected and joined");
+                    Rak811.Signal signal = rak811.signal();
+                    try {
+                        Location location = fusedLocationClient.getLastLocation()
+                                .getResult();
+                        DataPoint dp = new DataPoint(-1, location,
+                                true, signal.rssi, signal.snr);
+                        mapData.setOrigin(dp);
+                        messages.onNext("origin set");
+                    } catch (SecurityException se) {
+
+                    }
                     this.rak811 = rak811;
                 }, e -> {
                     Log.d(TAG, "", e);
@@ -122,8 +133,9 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
 
     public static class MapData extends BaseObservable {
 
-        private long best;
+        private float best;
         private LatLng lastKnownLocation;
+        private DataPoint origin;
         private final ArrayList<DataPoint> dataPoints = new ArrayList<>();
 
         @Bindable
@@ -139,8 +151,12 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
         public CameraUpdate getCamera() {
             if (dataPoints.size() >= 1) {
                 LatLngBounds.Builder latLngBoundsBuilder = LatLngBounds.builder();
+                if (origin != null)
+                    latLngBoundsBuilder.include(new LatLng(origin.location.getLatitude(),
+                            origin.location.getLongitude()));
                 for (DataPoint dp : dataPoints)
-                    latLngBoundsBuilder.include(new LatLng(dp.lat, dp.lon));
+                    latLngBoundsBuilder.include(new LatLng(dp.location.getLatitude(),
+                            dp.location.getLongitude()));
                 return CameraUpdateFactory.newLatLngBounds(latLngBoundsBuilder.build(), 0);
             } else if (lastKnownLocation != null)
                 return CameraUpdateFactory.newLatLngZoom(lastKnownLocation, 15);
@@ -148,8 +164,18 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
                 return null;
         }
 
+        public void setOrigin(DataPoint origin) {
+            this.origin = origin;
+            notifyPropertyChanged(BR.markers);
+            notifyPropertyChanged(BR.camera);
+        }
+
         public void addDataPoint(DataPoint dataPoint) {
             dataPoints.add(dataPoint);
+            if (origin != null) {
+                float distance = dataPoint.location.distanceTo(origin.location);
+                best = Math.max(best, distance);
+            }
             notifyPropertyChanged(BR.markers);
             notifyPropertyChanged(BR.camera);
             notifyPropertyChanged(BR.best);
@@ -158,7 +184,6 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
         public void updateFrom(LocationResult locationResult) {
             Location location = locationResult.getLastLocation();
             lastKnownLocation = new LatLng(location.getLatitude(), location.getLongitude());
-
             if (dataPoints.size() == 0)
                 notifyPropertyChanged(BR.camera);
         }
@@ -172,17 +197,15 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
     private static class DataPoint {
         public final long timestamp;
         public final int serial;
-        public final double lat;
-        public final double lon;
+        public final Location location;
         public final boolean success;
         public final int rssi;
         public final int snr;
 
-        public DataPoint(int serial, double lat, double lon, boolean success, int rssi, int snr) {
+        public DataPoint(int serial, Location location, boolean success, int rssi, int snr) {
             this.timestamp = System.currentTimeMillis();
             this.serial = serial;
-            this.lat = lat;
-            this.lon = lon;
+            this.location = location;
             this.success = success;
             this.rssi = rssi;
             this.snr = snr;
@@ -190,20 +213,20 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
 
         public MarkerOptions getMarker() {
             return new MarkerOptions()
-                    .position(new LatLng(lat, lon))
+                    .position(new LatLng(location.getLatitude(), location.getLongitude()))
                     .title(String.format("%d", serial))
                     .snippet(String.format("%s", rssi));
         }
 
         public static DataPoint from(int serial, LocationResult locationResult, Rak811.Signal signal) {
             Location location = locationResult.getLastLocation();
-            return new DataPoint(serial, location.getLatitude(), location.getLongitude(),
+            return new DataPoint(serial, location,
                     true, signal.rssi, signal.snr);
         }
 
         public static DataPoint failure(int serial, LocationResult locationResult) {
             Location location = locationResult.getLastLocation();
-            return new DataPoint(serial, location.getLatitude(), location.getLongitude(),
+            return new DataPoint(serial, location,
                     false, 0, 0);
         }
     }
@@ -222,6 +245,7 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
     public LocationRequest createLocationRequest() {
         LocationRequest locationRequest = LocationRequest.create()
                 .setInterval(60 * 1000)
+                .setSmallestDisplacement(25)
                 .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         return locationRequest;
     }
@@ -232,7 +256,8 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
         if (ActivityCompat.checkSelfPermission(Rak811TesterApplication.getInstance(),
                 Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
-            fusedLocationClient.requestLocationUpdates(createLocationRequest(), locationCallback,
+            fusedLocationClient.requestLocationUpdates(createLocationRequest(),
+                    locationCallback,
                     Looper.getMainLooper());
         }
     }
