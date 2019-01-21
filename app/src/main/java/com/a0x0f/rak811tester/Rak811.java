@@ -75,7 +75,9 @@ public class Rak811 {
         }
     }
 
-    private static String doCommand(UsbSerialDevice port, String command, String... parameters) {
+    private static String doCommand(UsbSerialDevice port,
+                                    String command,
+                                    String... parameters) {
         synchronized (port) {
             try {
                 StringBuffer sb = new StringBuffer();
@@ -98,6 +100,8 @@ public class Rak811 {
 
                 String result = readLine(port);
                 Logger.d(TAG, "result: " + result);
+
+
                 return result;
             } catch (UnsupportedEncodingException uee) {
                 throw new RuntimeException();
@@ -111,6 +115,15 @@ public class Rak811 {
         String line = readLine(port);
         Logger.d(TAG, "result: " + line);
         return Result.from(line);
+    }
+
+    private static Downlink waitForDownlink(UsbSerialDevice port) {
+        String line = readLine(port, 10000);
+        if (line != null) {
+            Logger.d(TAG, "downlink: " + line);
+            return Downlink.from(line);
+        } else
+            return null;
     }
 
     @WorkerThread
@@ -167,6 +180,9 @@ public class Rak811 {
         String dataString = Hex.bytesToStringUppercase(data);
         doCommand(this.port, CMD_SEND, confirmed ? "1" : "0", Integer.toString(port), dataString);
         Result result = waitForResult(this.port);
+
+        Downlink downlink = waitForDownlink(this.port);
+
         return result.eventCode == EVENTCODE_STATUS_TX_CONFIRMED;
     }
 
@@ -177,6 +193,10 @@ public class Rak811 {
     }
 
     public static class Result {
+
+        protected static Pattern recvPattern =
+                Pattern.compile("at\\+recv=([0-9]{1,3}),([0-9]{1,3}),([0-9]{1,3})");
+
         public final int eventCode;
         public final int port;
         public int len;
@@ -191,7 +211,6 @@ public class Rak811 {
             if (buffer == null)
                 throw new IllegalArgumentException();
 
-            Pattern recvPattern = Pattern.compile("at\\+recv=([0-9]{1,3}),([0-9]{1,3}),([0-9]{1,3})");
             Matcher matcher = recvPattern.matcher(buffer);
             if (matcher.find()) {
                 int eventCode = Integer.parseInt(matcher.group(1));
@@ -208,6 +227,29 @@ public class Rak811 {
         @Override
         public String toString() {
             return new Gson().toJson(this);
+        }
+    }
+
+    public static class Downlink extends Result {
+
+        private Downlink(int eventCode, int port, int len) {
+            super(eventCode, port, len);
+        }
+
+        public static Downlink from(String buffer) {
+            if (buffer == null)
+                throw new IllegalArgumentException();
+            
+            Matcher matcher = recvPattern.matcher(buffer);
+            if (matcher.find()) {
+                int eventCode = Integer.parseInt(matcher.group(1));
+                int port = Integer.parseInt(matcher.group(2));
+                int len = Integer.parseInt(matcher.group(3));
+                Downlink downlink = new Downlink(eventCode, port, len);
+                return downlink;
+            }
+
+            return null;
         }
     }
 
