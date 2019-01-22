@@ -19,6 +19,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.tasks.Tasks;
 
 import java.nio.ByteBuffer;
 import java.text.NumberFormat;
@@ -106,8 +107,10 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
                 .flatMap(p -> {
                             Rak811 rak811 = Rak811.from(p);
                             if (rak811 != null) {
-                                rak811.join();
-                                return Observable.just(rak811);
+                                if (rak811.join())
+                                    return Observable.just(rak811);
+                                else
+                                    messages.onNext("join failed");
                             }
                             return Observable.empty();
                         }
@@ -116,8 +119,8 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
                     messages.onNext("rak811 connected and joined");
                     Rak811.Signal signal = rak811.signal();
                     try {
-                        Location location = fusedLocationClient.getLastLocation()
-                                .getResult();
+                        Location location =
+                                Tasks.await(fusedLocationClient.getLastLocation());
                         DataPoint dp = new DataPoint(-1, location,
                                 true, signal.rssi, signal.snr);
                         mapData.setOrigin(dp);
@@ -134,6 +137,8 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
     public static class MapData extends BaseObservable {
 
         private float best;
+        private float rssi;
+        private float snr;
         private LatLng lastKnownLocation;
         private DataPoint origin;
         private final ArrayList<DataPoint> dataPoints = new ArrayList<>();
@@ -141,6 +146,8 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
         @Bindable
         public Collection<MarkerOptions> getMarkers() {
             ArrayList<MarkerOptions> markers = new ArrayList<>();
+            if (origin != null)
+                markers.add(origin.getMarker());
             for (DataPoint dataPoint : dataPoints)
                 if (dataPoint.success)
                     markers.add(dataPoint.getMarker());
@@ -149,7 +156,7 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
 
         @Bindable
         public CameraUpdate getCamera() {
-            if (dataPoints.size() >= 1) {
+            if (origin != null || dataPoints.size() >= 1) {
                 LatLngBounds.Builder latLngBoundsBuilder = LatLngBounds.builder();
                 if (origin != null)
                     latLngBoundsBuilder.include(new LatLng(origin.location.getLatitude(),
@@ -168,6 +175,14 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
             this.origin = origin;
             notifyPropertyChanged(BR.markers);
             notifyPropertyChanged(BR.camera);
+            updateRssiSnr(origin);
+        }
+
+        private void updateRssiSnr(DataPoint dataPoint) {
+            rssi = dataPoint.rssi;
+            snr = dataPoint.snr;
+            notifyPropertyChanged(BR.rssi);
+            notifyPropertyChanged(BR.snr);
         }
 
         public void addDataPoint(DataPoint dataPoint) {
@@ -176,9 +191,11 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
                 float distance = dataPoint.location.distanceTo(origin.location);
                 best = Math.max(best, distance);
             }
+
             notifyPropertyChanged(BR.markers);
             notifyPropertyChanged(BR.camera);
             notifyPropertyChanged(BR.best);
+            updateRssiSnr(dataPoint);
         }
 
         public void updateFrom(LocationResult locationResult) {
@@ -191,6 +208,16 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
         @Bindable
         public String getBest() {
             return NumberFormat.getInstance().format(best);
+        }
+
+        @Bindable
+        public String getRssi() {
+            return NumberFormat.getInstance().format(rssi);
+        }
+
+        @Bindable
+        public String getSnr() {
+            return NumberFormat.getInstance().format(snr);
         }
     }
 

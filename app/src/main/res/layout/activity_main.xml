@@ -40,6 +40,29 @@
             android:textSize="36dp"
             tools:text="4,000" />
 
+        <TextView
+            style="@style/overlayedtext"
+            android:text="@{viewModel.mapData.best}"
+            tools:text="4,000" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|right"
+            android:layout_marginBottom="64dp">
+
+            <TextView
+                style="@style/overlayedtext"
+                android:text="@{viewModel.mapData.rssi}"
+                tools:text="4,000" />
+
+            <TextView
+                style="@style/overlayedtext"
+                android:text="@{viewModel.mapData.snr}"
+                tools:text="4,000" />
+        </LinearLayout>
+
+
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -57,6 +80,7 @@
                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
 
         </FrameLayout>
+
 
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 </layout>
