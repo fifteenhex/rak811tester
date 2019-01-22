@@ -41,7 +41,7 @@
             tools:text="4,000" />
 
         <TextView
-            style="@style/overlayedtext"
+            style="@style/Rak811Tester.Text.Overlayed"
             android:text="@{viewModel.mapData.best}"
             tools:text="4,000" />
 
@@ -49,17 +49,32 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|right"
-            android:layout_marginBottom="64dp">
+            android:layout_marginBottom="64dp"
+            android:orientation="vertical">
 
             <TextView
-                style="@style/overlayedtext"
-                android:text="@{viewModel.mapData.rssi}"
-                tools:text="4,000" />
+                style="@style/Rak811Tester.Text.Overlayed.Label"
+                android:text="best" />
+
+            <include
+                layout="@layout/snippet_rssisnr"
+                app:signal="@{viewModel.mapData.bestSignal}" />
 
             <TextView
-                style="@style/overlayedtext"
-                android:text="@{viewModel.mapData.snr}"
-                tools:text="4,000" />
+                style="@style/Rak811Tester.Text.Overlayed.Label"
+                android:text="current" />
+
+            <include
+                layout="@layout/snippet_rssisnr"
+                app:signal="@{viewModel.mapData.currentSignal}" />
+
+            <TextView
+                style="@style/Rak811Tester.Text.Overlayed.Label"
+                android:text="worst" />
+
+            <include
+                layout="@layout/snippet_rssisnr"
+                app:signal="@{viewModel.mapData.worstSignal}" />
         </LinearLayout>
 
 

@@ -134,11 +134,46 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
                 });
     }
 
+    public static class SnrRssi extends BaseObservable {
+        public float rssi;
+        public float snr;
+
+        @Bindable
+        public String getRssi() {
+            return NumberFormat.getInstance().format(rssi);
+        }
+
+        @Bindable
+        public String getSnr() {
+            return NumberFormat.getInstance().format(snr);
+        }
+
+        private void updateRssiSnr(DataPoint dataPoint) {
+            rssi = dataPoint.rssi;
+            snr = dataPoint.snr;
+            notifyPropertyChanged(BR.rssi);
+            notifyPropertyChanged(BR.snr);
+        }
+
+        private void updateRssiSnrIfWorse(DataPoint dataPoint) {
+            if (dataPoint.rssi < rssi)
+                updateRssiSnr(dataPoint);
+        }
+
+        private void updateRssiSnrIfBetter(DataPoint dataPoint) {
+            if (dataPoint.rssi > rssi)
+                updateRssiSnr(dataPoint);
+        }
+    }
+
     public static class MapData extends BaseObservable {
 
         private float best;
-        private float rssi;
-        private float snr;
+
+        public final SnrRssi bestSignal = new SnrRssi();
+        public final SnrRssi currentSignal = new SnrRssi();
+        public final SnrRssi worstSignal = new SnrRssi();
+
         private LatLng lastKnownLocation;
         private DataPoint origin;
         private final ArrayList<DataPoint> dataPoints = new ArrayList<>();
@@ -171,19 +206,19 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
                 return null;
         }
 
+        public void updateSignals(DataPoint dataPoint) {
+            currentSignal.updateRssiSnr(dataPoint);
+            bestSignal.updateRssiSnrIfBetter(dataPoint);
+            worstSignal.updateRssiSnrIfWorse(dataPoint);
+        }
+
         public void setOrigin(DataPoint origin) {
             this.origin = origin;
             notifyPropertyChanged(BR.markers);
             notifyPropertyChanged(BR.camera);
-            updateRssiSnr(origin);
+            updateSignals(origin);
         }
 
-        private void updateRssiSnr(DataPoint dataPoint) {
-            rssi = dataPoint.rssi;
-            snr = dataPoint.snr;
-            notifyPropertyChanged(BR.rssi);
-            notifyPropertyChanged(BR.snr);
-        }
 
         public void addDataPoint(DataPoint dataPoint) {
             dataPoints.add(dataPoint);
@@ -195,7 +230,7 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
             notifyPropertyChanged(BR.markers);
             notifyPropertyChanged(BR.camera);
             notifyPropertyChanged(BR.best);
-            updateRssiSnr(dataPoint);
+            updateSignals(dataPoint);
         }
 
         public void updateFrom(LocationResult locationResult) {
@@ -210,15 +245,7 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
             return NumberFormat.getInstance().format(best);
         }
 
-        @Bindable
-        public String getRssi() {
-            return NumberFormat.getInstance().format(rssi);
-        }
 
-        @Bindable
-        public String getSnr() {
-            return NumberFormat.getInstance().format(snr);
-        }
     }
 
     private static class DataPoint {

@@ -8,16 +8,36 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
-    <style name="overlayedtext">
+    <style name="Rak811Tester">
+
+    </style>
+
+    <style name="Rak811Tester.Text">
+
+    </style>
+
+    <style name="Rak811Tester.Text.Overlayed">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:padding">@dimen/padding_normal</item>
+        <item name="android:paddingTop">@dimen/padding_normal</item>
+        <item name="android:paddingLeft">@dimen/padding_normal</item>
+        <item name="android:paddingBottom">@dimen/padding_normal</item>
+        <item name="android:paddingRight">@dimen/padding_normal</item>
         <item name="android:shadowColor">#dd000000</item>
         <item name="android:shadowDx">1</item>
         <item name="android:shadowDy">1</item>
         <item name="android:shadowRadius">10</item>
         <item name="android:textColor">#fff</item>
         <item name="android:textSize">36dp</item>
+    </style>
+
+    <style name="Rak811Tester.Text.Overlayed.NoVertPad">
+        <item name="android:paddingTop">0dp</item>
+        <item name="android:paddingBottom">0dp</item>
+    </style>
+
+    <style name="Rak811Tester.Text.Overlayed.Label" parent="Rak811Tester.Text.Overlayed.NoVertPad">
+        <item name="android:textSize">12dp</item>
     </style>
 
 </resources>
