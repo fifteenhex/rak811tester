@@ -41,6 +41,10 @@
             tools:text="4,000" />
 
         <TextView
+            style="@style/Rak811Tester.Text.Overlayed.Label"
+            android:text="range" />
+
+        <TextView
             style="@style/Rak811Tester.Text.Overlayed"
             android:text="@{viewModel.mapData.best}"
             tools:text="4,000" />

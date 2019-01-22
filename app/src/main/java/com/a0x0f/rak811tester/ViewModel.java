@@ -16,6 +16,8 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -123,6 +125,7 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
                                 Tasks.await(fusedLocationClient.getLastLocation());
                         DataPoint dp = new DataPoint(-1, location,
                                 true, signal.rssi, signal.snr);
+                        dp.origin = true;
                         mapData.setOrigin(dp);
                         messages.onNext("origin set");
                     } catch (SecurityException se) {
@@ -216,7 +219,9 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
             this.origin = origin;
             notifyPropertyChanged(BR.markers);
             notifyPropertyChanged(BR.camera);
-            updateSignals(origin);
+            currentSignal.updateRssiSnr(origin);
+            bestSignal.updateRssiSnr(origin);
+            worstSignal.updateRssiSnr(origin);
         }
 
 
@@ -242,7 +247,7 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
 
         @Bindable
         public String getBest() {
-            return NumberFormat.getInstance().format(best);
+            return String.format("%s meters", NumberFormat.getInstance().format(best));
         }
 
 
@@ -256,6 +261,8 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
         public final int rssi;
         public final int snr;
 
+        public boolean origin;
+
         public DataPoint(int serial, Location location, boolean success, int rssi, int snr) {
             this.timestamp = System.currentTimeMillis();
             this.serial = serial;
@@ -266,10 +273,16 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
         }
 
         public MarkerOptions getMarker() {
-            return new MarkerOptions()
+            MarkerOptions markerOptions = new MarkerOptions()
                     .position(new LatLng(location.getLatitude(), location.getLongitude()))
                     .title(String.format("%d", serial))
                     .snippet(String.format("%s", rssi));
+
+            /*if (origin)
+                markerOptions.icon(BitmapDescriptorFactory
+                        .fromResource(R.drawable.ic_cake_black_24dp));*/
+
+            return markerOptions;
         }
 
         public static DataPoint from(int serial, LocationResult locationResult, Rak811.Signal signal) {
