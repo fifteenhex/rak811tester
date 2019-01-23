@@ -2,13 +2,18 @@ package com.a0x0f.rak811tester;
 
 
 import android.Manifest;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.Toast;
 
 import com.a0x0f.rak811tester.databinding.ActivityMainBinding;
+import com.a0x0f.rak811tester.databinding.DialogRak811settingsBinding;
+import com.a0x0f.rak811tester.databinding.DialogStatusBinding;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.ResolvableApiException;
 import com.google.android.gms.location.LocationServices;
@@ -17,6 +22,7 @@ import com.google.android.gms.location.LocationSettingsResponse;
 import com.google.android.gms.location.LocationSettingsStatusCodes;
 import com.google.android.gms.tasks.Task;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.databinding.DataBindingUtil;
@@ -109,5 +115,57 @@ public class MainActivity extends AppCompatActivity {
 
     protected ViewModel getViewModel() {
         return ViewModelProviders.of(this).get(ViewModel.class);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        getMenuInflater().inflate(R.menu.menu, menu);
+        return true;
+    }
+
+    private void showRak811Settings() {
+        DialogRak811settingsBinding binding = DataBindingUtil.inflate(getLayoutInflater(),
+                R.layout.dialog_rak811settings, null, false);
+        binding.setViewModel(getViewModel());
+
+        new AlertDialog.Builder(this)
+                .setTitle("Rak811 Settings")
+                .setView(binding.getRoot())
+                .setNegativeButton("Fuggedaboutit!", (dialog, which) -> {
+                        }
+                )
+                .setPositiveButton("Okie dokie", (dialog, which) -> {
+                        }
+                )
+                .show();
+    }
+
+    private void showStatus() {
+        DialogStatusBinding binding = DataBindingUtil.inflate(getLayoutInflater(),
+                R.layout.dialog_status, null, false);
+        binding.setViewModel(getViewModel());
+
+        new AlertDialog.Builder(this)
+                .setTitle("Status")
+                .setView(binding.getRoot())
+                .setPositiveButton("Okie dokie", (dialog, which) -> {
+                        }
+                )
+                .show();
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_rak811_settings:
+                showRak811Settings();
+                return true;
+            case R.id.action_status:
+                showStatus();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 }

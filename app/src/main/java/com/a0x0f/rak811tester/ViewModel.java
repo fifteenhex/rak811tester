@@ -3,6 +3,9 @@ package com.a0x0f.rak811tester;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.location.Location;
 import android.os.Looper;
 import android.util.Log;
@@ -16,7 +19,6 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
-import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
@@ -39,6 +41,7 @@ import androidx.lifecycle.LifecycleObserver;
 import androidx.lifecycle.OnLifecycleEvent;
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Observable;
+import io.reactivex.Observer;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
@@ -109,10 +112,12 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
                 .flatMap(p -> {
                             Rak811 rak811 = Rak811.from(p);
                             if (rak811 != null) {
+                                rak811Config.update(rak811);
                                 rak811.getBand();
-                                if (rak811.join())
+                                if (rak811.join()) {
+                                    status.update(rak811);
                                     return Observable.just(rak811);
-                                else
+                                } else
                                     messages.onNext("join failed");
                             }
                             return Observable.empty();
@@ -255,6 +260,40 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
     }
 
     private static class DataPoint {
+
+        private static final Bitmap originMarker;
+        private static final Bitmap dataPointMarkerStrong;
+        private static final Bitmap dataPointMarkerNormal;
+        private static final Bitmap dataPointMarkerWeak;
+
+        private static Bitmap makeDot(int fillColour) {
+            int size = 32;
+            Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+
+            Canvas c = new Canvas(bitmap);
+            c.translate(size / 2, size / 2);
+
+            Paint fill = new Paint();
+            fill.setColor(fillColour);
+            fill.setAntiAlias(true);
+            c.drawCircle(0, 0, size / 2, fill);
+
+            Paint ring = new Paint();
+            ring.setARGB(0xff, 0xff, 0xff, 0xff);
+            ring.setAntiAlias(true);
+            ring.setStyle(Paint.Style.STROKE);
+            ring.setStrokeWidth(2);
+            c.drawCircle(0, 0, size / 2, ring);
+            return bitmap;
+        }
+
+        static {
+            originMarker = makeDot(0xffb61cd1);
+            dataPointMarkerStrong = makeDot(0xff1cd12f);
+            dataPointMarkerNormal = makeDot(0xffd1c41c);
+            dataPointMarkerWeak = makeDot(0xffd11c1c);
+        }
+
         public final long timestamp;
         public final int serial;
         public final Location location;
@@ -278,10 +317,19 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
                     .position(new LatLng(location.getLatitude(), location.getLongitude()))
                     .title(String.format("%d", serial))
                     .snippet(String.format("%s", rssi));
+            Bitmap marker;
+            if (origin)
+                marker = originMarker;
+            else {
+                if (rssi <= -100)
+                    marker = dataPointMarkerWeak;
+                else if (rssi <= 70)
+                    marker = dataPointMarkerNormal;
+                else
+                    marker = dataPointMarkerNormal;
+            }
 
-            /*if (origin)
-                markerOptions.icon(BitmapDescriptorFactory
-                        .fromResource(R.drawable.ic_cake_black_24dp));*/
+            markerOptions.icon(BitmapDescriptorFactory.fromBitmap(marker));
 
             return markerOptions;
         }
@@ -350,4 +398,34 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
         serialDriverDisposable.dispose();
         locationDisposable.dispose();
     }
+
+    public static class Rak811Config extends BaseObservable {
+        @Bindable
+        public String appEui;
+        @Bindable
+        public String devEui;
+
+
+        public void update(Rak811 rak811) {
+            appEui = rak811.getAppEui();
+            devEui = rak811.getDevEui();
+
+            notifyPropertyChanged(BR.appEui);
+            notifyPropertyChanged(BR.devEui);
+        }
+    }
+
+    public final Rak811Config rak811Config = new Rak811Config();
+
+    public static class Status extends BaseObservable {
+        public String firmware;
+        public String devAddr;
+
+        public void update(Rak811 rak811) {
+            rak811.getVersion();
+            rak811.getDevAddr();
+        }
+    }
+
+    public final Status status = new Status();
 }

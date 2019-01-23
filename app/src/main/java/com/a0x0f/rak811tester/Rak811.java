@@ -25,6 +25,7 @@ public class Rak811 {
     private static final String CMD_SEND = "send";
     private static final String CMD_SIGNAL = "signal";
     private static final String CMD_BAND = "band";
+    private static final String CMD_GET_CONFIG = "get_config";
 
     private static final Pattern SIGNAL_PATTERN = Pattern.compile("OK(-{0,1}[0-9]{1,3}),([0-9]{1,3})");
 
@@ -295,4 +296,32 @@ public class Rak811 {
         }
     }
 
+    public static String EUI_PATTERN = "[A-Z0-9]{16}";
+    private final static Pattern euiResult = Pattern.compile("OK(" + EUI_PATTERN + ")");
+
+    public String getAppEui() {
+        String result = doCommand(this.port, CMD_GET_CONFIG, "app_eui");
+        Matcher matcher = euiResult.matcher(result);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        return null;
+    }
+
+    public String getDevEui() {
+        String result = doCommand(this.port, CMD_GET_CONFIG, "dev_eui");
+        Matcher matcher = euiResult.matcher(result);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        return null;
+    }
+
+    public void getDevAddr() {
+        String result = doCommand(this.port, CMD_GET_CONFIG, "dev_addr");
+    }
+
+    public void getVersion() {
+        String result = doCommand(this.port, CMD_VERSION);
+    }
 }
