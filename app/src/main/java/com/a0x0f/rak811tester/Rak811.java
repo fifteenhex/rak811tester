@@ -1,6 +1,8 @@
 package com.a0x0f.rak811tester;
 
 
+import android.text.TextUtils;
+
 import com.felhr.usbserial.UsbSerialDevice;
 import com.felhr.usbserial.UsbSerialInterface;
 import com.google.android.gms.common.util.Hex;
@@ -22,6 +24,7 @@ public class Rak811 {
     private static final String CMD_VERSION = "version";
     private static final String CMD_SEND = "send";
     private static final String CMD_SIGNAL = "signal";
+    private static final String CMD_BAND = "band";
 
     private static final Pattern SIGNAL_PATTERN = Pattern.compile("OK(-{0,1}[0-9]{1,3}),([0-9]{1,3})");
 
@@ -190,6 +193,26 @@ public class Rak811 {
     public Signal signal() {
         String result = doCommand(this.port, CMD_SIGNAL);
         return Signal.from(result);
+    }
+
+    @WorkerThread
+    public void setBand(Band band) {
+        String result = doCommand(this.port, CMD_BAND, band.name());
+    }
+
+    public Band getBand() {
+        String result = doCommand(this.port, CMD_BAND);
+        Pattern pattern = Pattern.compile(String.format("(OK)(%s)", TextUtils.join("|", Band.values())));
+        Matcher matcher = pattern.matcher(result);
+        if (matcher.find()) {
+            String bandString = matcher.group(2);
+            return Band.valueOf(bandString);
+        }
+        return null;
+    }
+
+    public enum Band {
+        AS923, EU868, AU915, US915, IN865, KR920
     }
 
     public static class Result {

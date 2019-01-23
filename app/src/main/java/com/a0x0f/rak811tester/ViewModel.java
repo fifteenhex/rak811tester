@@ -109,6 +109,7 @@ public class ViewModel extends androidx.lifecycle.ViewModel implements Lifecycle
                 .flatMap(p -> {
                             Rak811 rak811 = Rak811.from(p);
                             if (rak811 != null) {
+                                rak811.getBand();
                                 if (rak811.join())
                                     return Observable.just(rak811);
                                 else
